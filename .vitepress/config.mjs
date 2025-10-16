@@ -13,6 +13,7 @@ import serverlessSidebar from '../docs/external-content/serverless-manager/docs/
 import telemetrySidebar from '../docs/external-content/telemetry-manager/docs/user/_sidebar';
 import cliSidebar from '../docs/external-content/cli/docs/user/_sidebar';
 import busolaSidebar from '../docs/external-content/busola/docs/user/_sidebar';
+import registryProxySidebar from '../docs/external-content/registry-proxy/docs/user/_sidebar';
 
 export function getSearchConfig() {
   return {
@@ -28,25 +29,12 @@ export function getSearchConfig() {
             // Configure how fields are extracted from documents
             extractField: (document, fieldName) => {
               // Extract frontmatter metadata for search
-              if (fieldName === 'categories' && document.frontmatter?.categories) {
-                return Array.isArray(document.frontmatter.categories)
-                    ? document.frontmatter.categories.join(' ')
-                    : document.frontmatter.categories;
+              const frontmatterValue = getFrontmatterFieldValue(document, fieldName);
+              if (frontmatterValue !== undefined) {
+                return frontmatterValue;
               }
-              if (fieldName === 'tags' && document.frontmatter?.tags) {
-                return Array.isArray(document.frontmatter.tags)
-                    ? document.frontmatter.tags.join(' ')
-                    : document.frontmatter.tags;
-              }
-              if (fieldName === 'description' && document.frontmatter?.description) {
-                return document.frontmatter.description;
-              }
-              if (fieldName === 'page_synonyms' && document.frontmatter?.page_synonyms) {
-                return Array.isArray(document.frontmatter.page_synonyms)
-                    ? document.frontmatter.page_synonyms.join(' ')
-                    : document.frontmatter.page_synonyms;
-              }
-              // Extract default fields
+
+              // Fallback to default field
               return document[fieldName];
             },
             // Custom tokenizer to handle special characters in technical docs
@@ -78,6 +66,27 @@ export function getSearchConfig() {
       }
     }
 }
+
+
+function getFrontmatterFieldValue(document, fieldName) {
+  const frontmatter = document?.frontmatter;
+  if (!frontmatter || !frontmatter[fieldName]) return undefined;
+
+  const fieldsToJoin = ['categories', 'tags', 'page_synonyms'];
+
+  if (fieldsToJoin.includes(fieldName)) {
+    return Array.isArray(frontmatter[fieldName])
+      ? frontmatter[fieldName].join(' ')
+      : frontmatter[fieldName];
+  }
+
+  if (fieldName === 'description') {
+    return frontmatter.description;
+  }
+
+  return undefined;
+}
+
 
 function makeSidebarAbsolutePath(sidebar, objectName) {
   return sidebar.map(item => {
@@ -129,7 +138,8 @@ export default defineConfig({
           { text: 'Keda', link: '/external-content/keda-manager/docs/user/README.md', collapsed: true, items: makeSidebarAbsolutePath(kedaSidebar, 'keda-manager')},
           { text: 'NATS', link: '/external-content/nats-manager/docs/user/README.md', collapsed: true, items: makeSidebarAbsolutePath(natsSidebar, 'nats-manager')},
           { text: 'Serverless', link: '/external-content/serverless-manager/docs/user/README.md', collapsed: true, items: makeSidebarAbsolutePath(serverlessSidebar, 'serverless-manager')},
-          { text: 'Telemetry', link: '/external-content/telemetry-manager/docs/user/README.md', collapsed: true, items: makeSidebarAbsolutePath(telemetrySidebar, 'telemetry-manager')}
+          { text: 'Telemetry', link: '/external-content/telemetry-manager/docs/user/README.md', collapsed: true, items: makeSidebarAbsolutePath(telemetrySidebar, 'telemetry-manager')},
+          { text: 'Registry Proxy', link: '/external-content/registry-proxy/docs/user/README.md', collapsed: true, items: makeSidebarAbsolutePath(registryProxySidebar, 'registry-proxy')}
         ]
       },
       {
