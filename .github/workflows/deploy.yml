@@ -59,7 +59,7 @@ jobs:
             REPO_VAR=$(echo "$REPO" | tr '[:lower:]' '[:upper:]' | tr ' -' '_')_BRANCH
           
             # Read from ENV
-            VAR_BRANCH="${!REPO_VAR}"
+            VAR_BRANCH="${!REPO_VAR:-}"
           
             if [ -n "$VAR_BRANCH" ]; then
               BRANCH="$VAR_BRANCH"
