@@ -56,7 +56,7 @@ jobs:
           echo "📄 Raw input: $INPUT_RAW"
           # 1. Search on GitHub Variables first
           if [ "$BRANCH" = "$DEFAULT_BRANCH" ]; then
-            REPO_VAR=$(echo "$REPO" | tr '[:lower:]' '[:upper:]' | tr '- ' '_')_BRANCH
+            REPO_VAR=$(echo "$REPO" | tr '[:lower:]' '[:upper:]' | tr ' -' '_')_BRANCH
           
             # Read from ENV
             VAR_BRANCH="${!REPO_VAR}"
