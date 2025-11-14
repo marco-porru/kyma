@@ -55,7 +55,7 @@ jobs:
     
           echo "📄 Raw input: $INPUT_RAW"
           # 1. Search on GitHub Variables first
-          if [ "$BRANCH"if [ "$BRANCH" = "$DEFAULT_BRANCH" ]; then
+          if [ "$BRANCH" = "$DEFAULT_BRANCH" ]; then
             REPO_VAR=$(echo "$REPO" | tr '[:lower:]' '[:upper:]' | tr '- ' '_')_BRANCH
           
             # Read from ENV
@@ -91,11 +91,11 @@ jobs:
                 BRANCH="$BRANCH_FROM_ARRAY"
                 echo "✅ Found branch '$BRANCH' for $REPO (array format)"
               else
-                echo "ℹ️ Repository $REPO non trovato in input, controllo GitHub variables..."
+                echo "ℹ️ Repository $REPO not found in input, using default..."
               fi
             fi
           else
-            echo "ℹ️ Nessun input fornito, controllo GitHub variables..."
+            echo "ℹ️ No input provided, using default..."
           fi
       
           echo "branch=$BRANCH" >> $GITHUB_OUTPUT
