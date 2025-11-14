@@ -47,57 +47,65 @@ jobs:
         id: get-branch
         run: |
           set -euo pipefail
-    
+          
           REPO="${{ matrix.repository }}"
           INPUT_RAW="${{ inputs.repository_branches }}"
           DEFAULT_BRANCH="main"
           BRANCH="$DEFAULT_BRANCH"
-    
+          
           echo "📄 Raw input: $INPUT_RAW"
-          # 1. Search on GitHub Variables first
-          if [ "$BRANCH" = "$DEFAULT_BRANCH" ]; then
-            REPO_VAR=$(echo "$REPO" | tr '[:lower:]' '[:upper:]' | tr ' -' '_')_BRANCH
+          echo "🔍 Repository: $REPO"
+          echo "🔍 Default branch: $DEFAULT_BRANCH"
           
-            # Read from ENV
-            VAR_BRANCH="${!REPO_VAR:-}"
+          # 1. Cerca prima nelle variabili d'ambiente
+          REPO_VAR=$(echo "$REPO" | tr '[:lower:]' '[:upper:]' | tr ' -' '_')_BRANCH
+          echo "🔍 Computed env variable name: $REPO_VAR"
           
-            if [ -n "$VAR_BRANCH" ]; then
-              BRANCH="$VAR_BRANCH"
-              echo "✅ Using branch '$BRANCH' from GitHub variable ($REPO_VAR) for $REPO"
-            else
-              echo "ℹ️ Using default branch '$DEFAULT_BRANCH' for $REPO"
-            fi
-          # 2. In case of no variable, try from YAML to JSON
-          elif [ -n "$INPUT_RAW" ] && [ "$INPUT_RAW" != "{}" ]; then
-            if echo "$INPUT_RAW" | yq -o=json '.' >/dev/null 2>&1; then
-              PARSED=$(echo "$INPUT_RAW" | yq -o=json '.')
-              echo "✅ Input read as YAML converted to JSON"
-            elif echo "$INPUT_RAW" | jq empty >/dev/null 2>&1; then
-              PARSED="$INPUT_RAW"
-              echo "✅ Valid JSON conversion"
-            else
-              echo "⚠️ Not a valid YAML nor JSON"
-              PARSED="{}"
-            fi
-    
-            # 3. Search in map {repo: branch}
-            if echo "$PARSED" | jq -e "has(\"$REPO\")" >/dev/null 2>&1; then
-              BRANCH=$(echo "$PARSED" | jq -r ".[\"$REPO\"]")
-              echo "✅ Found branch '$BRANCH' for $REPO (map format)"
-            else
-              # 4. Search from array [{repository: repo, branch: branch}]
-              BRANCH_FROM_ARRAY=$(echo "$PARSED" | jq -r ".[] | select(.repository == \"$REPO\") | .branch" 2>/dev/null || echo "")
-              if [ -n "$BRANCH_FROM_ARRAY" ] && [ "$BRANCH_FROM_ARRAY" != "null" ]; then
-                BRANCH="$BRANCH_FROM_ARRAY"
-                echo "✅ Found branch '$BRANCH' for $REPO (array format)"
-              else
-                echo "ℹ️ Repository $REPO not found in input, using default..."
-              fi
-            fi
+          VAR_BRANCH="${!REPO_VAR:-}"
+          echo "🔍 Value from env ($REPO_VAR): ${VAR_BRANCH:-<not set>}"
+          
+          if [ -n "$VAR_BRANCH" ]; then
+            BRANCH="$VAR_BRANCH"
+            echo "✅ Using branch '$BRANCH' from GitHub variable ($REPO_VAR) for $REPO"
           else
-            echo "ℹ️ No input provided, using default..."
+            echo "ℹ️ No GitHub variable found for $REPO, checking input YAML/JSON..."
+          
+            # 2. Se non c'è variabile, prova a leggere l'input
+            if [ -n "$INPUT_RAW" ] && [ "$INPUT_RAW" != "{}" ]; then
+              echo "🔍 Parsing input..."
+              if echo "$INPUT_RAW" | yq -o=json '.' >/dev/null 2>&1; then
+                PARSED=$(echo "$INPUT_RAW" | yq -o=json '.')
+                echo "✅ Input read as YAML converted to JSON"
+              elif echo "$INPUT_RAW" | jq empty >/dev/null 2>&1; then
+                PARSED="$INPUT_RAW"
+                echo "✅ Valid JSON conversion"
+              else
+                echo "⚠️ Not a valid YAML nor JSON"
+                PARSED="{}"
+              fi
+          
+              echo "🔍 Parsed content: $PARSED"
+          
+              # 3. Cerca nel formato mappa {repo: branch}
+              if echo "$PARSED" | jq -e "has(\"$REPO\")" >/dev/null 2>&1; then
+                BRANCH=$(echo "$PARSED" | jq -r ".[\"$REPO\"]")
+                echo "✅ Found branch '$BRANCH' for $REPO (map format)"
+              else
+                # 4. Cerca nel formato array [{repository: repo, branch: branch}]
+                BRANCH_FROM_ARRAY=$(echo "$PARSED" | jq -r ".[] | select(.repository == \"$REPO\") | .branch" 2>/dev/null || echo "")
+                echo "🔍 Branch from array: ${BRANCH_FROM_ARRAY:-<none>}"
+                if [ -n "$BRANCH_FROM_ARRAY" ] && [ "$BRANCH_FROM_ARRAY" != "null" ]; then
+                  BRANCH="$BRANCH_FROM_ARRAY"
+                  echo "✅ Found branch '$BRANCH' for $REPO (array format)"
+                else
+                  echo "ℹ️ Repository $REPO not found in input, using default branch '$DEFAULT_BRANCH'"
+                fi
+              fi
+            else
+              echo "ℹ️ No input provided, using default branch '$DEFAULT_BRANCH'"
+            fi
           fi
-      
+          
           echo "branch=$BRANCH" >> $GITHUB_OUTPUT
           echo "🎯 Final decision: Using branch '$BRANCH' for repository '$REPO'"
 
