@@ -61,7 +61,11 @@ jobs:
           REPO_VAR=$(echo "$REPO" | tr '[:lower:]' '[:upper:]' | tr ' -' '_')_BRANCH
           echo "🔍 Computed env variable name: $REPO_VAR"
           
-          VAR_BRANCH="${!REPO_VAR:-}"
+          #VAR_BRANCH="${!REPO_VAR:-}"
+          
+          # Recupera il valore da vars usando toJson
+          VAR_BRANCH=$(jq -r --arg key "$REPO_VAR" '.[$key]' <<< '${{ toJson(vars) }}')
+
           echo "🔍 Value from env ($REPO_VAR): ${VAR_BRANCH:-<not set>}"
           
           if [ -n "$VAR_BRANCH" ]; then
