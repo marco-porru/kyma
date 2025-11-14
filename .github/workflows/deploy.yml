@@ -57,24 +57,22 @@ jobs:
           echo "🔍 Repository: $REPO"
           echo "🔍 Default branch: $DEFAULT_BRANCH"
           
-          # 1. Cerca prima nelle variabili d'ambiente
+          # 1. Search in the env variables: build the variable name as repo name --> to capital --> replace " " and "-" with "_" --> append "_BRANCH"
           REPO_VAR=$(echo "$REPO" | tr '[:lower:]' '[:upper:]' | tr ' -' '_')_BRANCH
           echo "🔍 Computed env variable name: $REPO_VAR"
           
-          #VAR_BRANCH="${!REPO_VAR:-}"
-          
-          # Recupera il valore da vars usando toJson
+          # Variable expansion --> ${{!VARIABLE}} <-- is not working for env if VARIABLE is dynamic. Combine jq and toJson to get the env variable value
           VAR_BRANCH=$(jq -r --arg key "$REPO_VAR" '.[$key]' <<< '${{ toJson(vars) }}')
 
           echo "🔍 Value from env ($REPO_VAR): ${VAR_BRANCH:-<not set>}"
           
-          if [ -n "$VAR_BRANCH" ]; then
+          if [ "$VAR_BRANCH" != "null" ]; then
             BRANCH="$VAR_BRANCH"
             echo "✅ Using branch '$BRANCH' from GitHub variable ($REPO_VAR) for $REPO"
           else
             echo "ℹ️ No GitHub variable found for $REPO, checking input YAML/JSON..."
           
-            # 2. Se non c'è variabile, prova a leggere l'input
+            # 2. No GitHub variable, read from input string
             if [ -n "$INPUT_RAW" ] && [ "$INPUT_RAW" != "{}" ]; then
               echo "🔍 Parsing input..."
               if echo "$INPUT_RAW" | yq -o=json '.' >/dev/null 2>&1; then
@@ -90,12 +88,12 @@ jobs:
           
               echo "🔍 Parsed content: $PARSED"
           
-              # 3. Cerca nel formato mappa {repo: branch}
+              # 3. Search in the map {repo: branch}
               if echo "$PARSED" | jq -e "has(\"$REPO\")" >/dev/null 2>&1; then
                 BRANCH=$(echo "$PARSED" | jq -r ".[\"$REPO\"]")
                 echo "✅ Found branch '$BRANCH' for $REPO (map format)"
               else
-                # 4. Cerca nel formato array [{repository: repo, branch: branch}]
+                # 4. Search as array [{repository: repo, branch: branch}]
                 BRANCH_FROM_ARRAY=$(echo "$PARSED" | jq -r ".[] | select(.repository == \"$REPO\") | .branch" 2>/dev/null || echo "")
                 echo "🔍 Branch from array: ${BRANCH_FROM_ARRAY:-<none>}"
                 if [ -n "$BRANCH_FROM_ARRAY" ] && [ "$BRANCH_FROM_ARRAY" != "null" ]; then
