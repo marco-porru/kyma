@@ -61,7 +61,7 @@ jobs:
           REPO_VAR=$(echo "$REPO" | tr '[:lower:]' '[:upper:]' | tr ' -' '_')_BRANCH
           echo "🔍 Computed env variable name: $REPO_VAR"
           
-          # Variable expansion --> ${{!VARIABLE}} <-- is not working for env if VARIABLE is dynamic. Combine jq and toJson to get the env variable value
+          # Variable expansion --> ${{!REPO_VAR}} <-- is not working for env if VARIABLE is dynamic. Combine jq and toJson to get the env variable value
           VAR_BRANCH=$(jq -r --arg key "$REPO_VAR" '.[$key]' <<< '${{ toJson(vars) }}')
 
           echo "🔍 Value from env ($REPO_VAR): ${VAR_BRANCH:-<not set>}"
